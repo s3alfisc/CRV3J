@@ -39,8 +39,8 @@ library(modelsummary)
 
 set.seed(98765)
 # few large clusters (around 10000 obs)
-N <- 10000
-N_G1 <-10
+N <- 100000
+N_G1 <-100
 data <- fwildclusterboot:::create_data(
     N = N,
     N_G1 = N_G1,
@@ -105,7 +105,7 @@ lmtest::coefci(lm_fit, parm = c("treatment", "log_income"), vcov = vcovHC)
 ```
 
 
-Hypothesis test: 
+Regression table: 
 
 ```{r, warning = FALSE, message = FALSE}
 vc <- list(vcovHC = vcovHC, vcovCR3 = vcovCR3, vcovJN = vcovJN)
