@@ -1,0 +1,117 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# clusterjack
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+`clusterjack` implements the CRV3 Jackknife algorithm proposed in [MacKinnon, Nielsen and Webb](https://scholar.google.de/citations?view_op=view_citation&hl=de&user=PdkdfhMAAAAJ&sortby=pubdate&citation_for_view=PdkdfhMAAAAJ:8VtEwCQfWZkC). 
+
+
+## Installation 
+
+To install the package, run 
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+devtools::install_github("s3alfisc/clusterjack")
+```
+
+## Example
+
+```{r, warning = FALSE, message = FALSE}
+library(clusterjack)
+library(fwildclusterboot)
+library(clubSandwich)
+library(lmtest)
+library(pracma)
+library(modelsummary)
+
+set.seed(98765)
+# few large clusters (around 10000 obs)
+N <- 10000
+N_G1 <-10
+data <- fwildclusterboot:::create_data(
+    N = N,
+    N_G1 = N_G1,
+    icc1 = 0.8,
+    N_G2 = 10,
+    icc2 = 0.8,
+    numb_fe1 = 10,
+    numb_fe2 = 10,
+    seed = 12
+  )
+lm_fit <- lm(proposition_vote ~ treatment  + log_income , data = data)
+
+if(N == N_G1){
+  data$group_id1 <- 1:N
+}
+```
+
+Calculate Jackknife CVR3 Variance-Covariance Matrix 
+
+```{r, warning = FALSE, message = FALSE}
+pracma::tic()
+vcovJN <- clusterjack::vcovJN(
+  model = lm_fit, 
+  clustid = data$group_id1
+)
+pracma::toc()
+```
+
+Calculate 
+
+```{r, warning = FALSE, message = FALSE}
+pracma::tic()
+vcovCR3 <- 
+clubSandwich::vcovCR(
+  lm_fit, 
+  cluster = data$group_id1, 
+  type = "CR3")
+pracma::toc()
+```
+```{r}
+library(sandwich)
+
+vcovHC <- sandwich::vcovHC(
+  lm_fit, 
+  type = "HC3"
+)
+```
+
+
+Confidence Intervals: 
+
+```{r, warning = FALSE, message = FALSE}
+cat("vcovJN", "\n")
+lmtest::coefci(lm_fit, parm = c("treatment", "log_income"), vcov = vcovJN)
+
+cat("vcovCR3", "\n")
+lmtest::coefci(lm_fit, parm = c("treatment", "log_income"), vcov = vcovCR3)
+
+cat("vcovHC3", "\n")
+lmtest::coefci(lm_fit, parm = c("treatment", "log_income"), vcov = vcovHC)
+
+```
+
+
+Hypothesis test: 
+
+```{r, warning = FALSE, message = FALSE}
+vc <- list(vcovHC = vcovHC, vcovCR3 = vcovCR3, vcovJN = vcovJN)
+mlist <- lapply(vc, coeftest, x = lm_fit)
+msummary(mlist)
+```
+
+
+
