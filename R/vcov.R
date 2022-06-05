@@ -1,9 +1,10 @@
 vcov_CR3J.lm <- function(obj, cluster, ...) {
   
   #' Compute CR3 Jackknive variance covariance matrices of objects of type lm
-  #' @param object An object of type lm
+  #' @param obj An object of type lm
   #' @param cluster A clustering vector
   #' @param ... other function arguments passed to 'vcov'
+  #' @importFrom stats coef model.frame model.response model.matrix weights
   #' @export
 
   cluster <- droplevels(as.factor(cluster))
@@ -65,24 +66,11 @@ vcov_CR3J.lm <- function(obj, cluster, ...) {
     
   vcov <- vcov * (J-1)/J
     
-  v_scale <- v_scale(obj)
-  w_scale <- attr(W_list, "w_scale")
-  if (is.null(w_scale)) w_scale <- 1L
-    
-    
-  # instead of sandwich::bread(obj), faster as tXX already computed
-  # bread <- N * solve(tXX)
-  bread <- sandwich::bread(obj)
-    
   rownames(vcov) <- colnames(vcov) <- colnames(X)
   attr(vcov, "cluster") <- cluster
-  attr(vcov, "bread") <- bread
-  attr(vcov, "v_scale") <- v_scale
-  attr(vcov, "est_mats") <- 
-    # required because CR3f computes t(X) %*% sqrt(w)
-           Map(function(x, w) as.matrix(t(x) %*% w), x = X_list, w = W_list)
-  attr(vcov, "adjustments") <- adjustments
-  class(vcov) <- c("vcovCJ","clubSandwich")
+  # required because CR3f computes t(X) %*% sqrt(w)
+  class(vcov) <- c("vcov_CV3J")
+  
   return(vcov)
   
 }
@@ -91,20 +79,29 @@ vcov_CR3J.lm <- function(obj, cluster, ...) {
 vcov_CR3J.fixest <- function(obj, cluster, ...) {
   
   #' Compute CR3 Jackknive variance covariance matrices of objects of type fixest
-  #' @param object An object of type lm
+  #' @param obj An object of type lm
   #' @param cluster A clustering vector
   #' @param ... other function arguments passed to 'vcov'
   #' @export
-  #' @importFrom fixest demean
-  
+
   cluster <- droplevels(as.factor(cluster))
   
   has_fe <- length(obj$fixef_vars) > 0
   
   X <- model.matrix(obj, type = "rhs")
+  y <- model.matrix(obj, type = "lhs")
+  
+  w <- weights(obj)
+  if(!is.null(w)){
+    X <- sqrt(w) * X
+    y <- sqrt(w) * y 
+    stop("Weighted least squares (WLS) is currently not supported for objects of type fixest.")
+  }
+
   if(has_fe){
     fe <- model.matrix(obj, type = "fixef")
-    X <- fixest::demean(X, fe)
+    X <- fixest::demean(X = X, f = fe)
+    y <- fixest::demean(X = y, f = fe)
   }
 
   p <- NCOL(X)
@@ -131,25 +128,18 @@ vcov_CR3J.fixest <- function(obj, cluster, ...) {
   resid <- resid(obj)
   res_list <- split(resid, cluster)
   
-  y <- model.matrix(obj, type = "lhs")
   y_list <- split(y, cluster)
   
   # X_g's in MNW notation
   X_list <- matrix_list(X, cluster, "row")
-  # W_g's in MNW notation
-  W_list <- weightMatrix(obj, cluster)
-  
-  # list of weight adjusted X's
-  XW_list <- Map(function(x, w) as.matrix(t(x) %*% sqrt(w)), x = X_list, w = W_list)
-  yW_list <- Map(function(y, w) as.matrix(t(y) %*% sqrt(w)), y = y_list, w = W_list)
-  
+
   # get small sample adjustments
   adjustments <- 1
   # multiply design matrices XW by sqrt(small_sample_adjustments)
-  E_list <- lapply(XW_list, function(e) e * adjustments)
+  E_list <- lapply(X_list, function(e) e * adjustments)
   
-  XWg_XWg <- Map(function(e) tcrossprod(e), e = E_list)
-  yWg_XWg <-  Map(function(e,y) e %*% t(y), e = E_list, y = yW_list)
+  XWg_XWg <- Map(function(e) crossprod(e), e = E_list)
+  yWg_XWg <-  Map(function(e,y) t(e) %*% as.matrix(y), e = E_list, y = y_list)
   tXX <- Reduce("+", XWg_XWg)
   tXy <- Reduce("+", yWg_XWg)
   # beta_g - beta
@@ -157,34 +147,18 @@ vcov_CR3J.fixest <- function(obj, cluster, ...) {
   vcov <- Reduce("+",Map(function(x) tcrossprod(x), x = coef_list) )
   
   vcov <- vcov * (J-1)/J
-  
-  v_scale <- v_scale(obj)
-  w_scale <- attr(W_list, "w_scale")
-  if (is.null(w_scale)) w_scale <- 1L
-  
-  
-  # instead of sandwich::bread(obj), faster as tXX already computed
-  # bread <- N * solve(tXX)
-  bread <- sandwich::bread(obj)
-  
+
   rownames(vcov) <- colnames(vcov) <- colnames(X)
-  attr(vcov, "cluster") <- cluster
-  attr(vcov, "bread") <- bread
-  attr(vcov, "v_scale") <- v_scale
-  attr(vcov, "est_mats") <- 
-    # required because CR3f computes t(X) %*% sqrt(w)
-    Map(function(x, w) as.matrix(t(x) %*% w), x = X_list, w = W_list)
-  attr(vcov, "adjustments") <- adjustments
-  class(vcov) <- c("vcovCJ","clubSandwich")
+  class(vcov) <- c("vcov_CV3J")
   return(vcov)
   
 }
 
 
-vcov_CR3J <- function(object, ...) {
+vcov_CR3J <- function(obj, ...) {
   
   #' Compute CR3 Jackknive variance covariance matrices of objects of type lm and fixest
-  #' @param object An object of class `lm` or `fixest``
+  #' @param obj An object of class `lm` or `fixest``
   #' @param ... Other arguments
   #' @export
   

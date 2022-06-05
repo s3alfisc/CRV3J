@@ -4,10 +4,10 @@
 \alias{vcov_CR3J}
 \title{Compute CR3 Jackknive variance covariance matrices of objects of type lm and fixest}
 \usage{
-vcov_CR3J(object, ...)
+vcov_CR3J(obj, ...)
 }
 \arguments{
-\item{object}{An object of class \code{lm} or `fixest``}
+\item{obj}{An object of class \code{lm} or `fixest``}
 
 \item{...}{Other arguments}
 }

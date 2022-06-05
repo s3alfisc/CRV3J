@@ -21,12 +21,9 @@ devtools::install_github("s3alfisc/clusterjack")
 ## Example
 
 ``` r
-library(clusterjack)
+library(CRV3J)
 library(fwildclusterboot)
-library(clubSandwich)
-library(lmtest)
-library(pracma)
-library(modelsummary)
+library(fixest)
 
 set.seed(98765)
 # few large clusters (around 10000 obs)
@@ -42,89 +39,32 @@ data <- fwildclusterboot:::create_data(
     numb_fe2 = 10,
     seed = 12
   )
-lm_fit <- lm(proposition_vote ~ treatment  + log_income , data = data)
 
-if(N == N_G1){
-  data$group_id1 <- 1:N
-}
+feols_fit <- feols(proposition_vote ~ treatment  + log_income |Q1_immigration + Q2_defense, cluster = ~group_id1 , data = data)
 ```
 
 Calculate Jackknife CVR3 Variance-Covariance Matrix
 
 ``` r
-pracma::tic()
-vcovJN <- clusterjack::vcovJN(
-  model = lm_fit, 
-  clustid = data$group_id1
+vcov <- CRV3J::vcov_CR3J(
+  obj = feols_fit, 
+  cluster = data$group_id1
 )
-pracma::toc()
-#> elapsed time is 0.320000 seconds
 ```
 
-Calculate
-
-``` r
-pracma::tic()
-vcovCR3 <- 
-clubSandwich::vcovCR(
-  lm_fit, 
-  cluster = data$group_id1, 
-  type = "CR3")
-pracma::toc()
-#> elapsed time is 156.190000 seconds
-```
+Results can now be collected via the `coeftest` package:
 
 ``` r
 library(sandwich)
+library(lmtest)
 
-vcovHC <- sandwich::vcovHC(
-  lm_fit, 
-  type = "HC3"
-)
+coeftest(feols_fit, vcov)
+#> 
+#> z test of coefficients:
+#> 
+#>              Estimate Std. Error  z value  Pr(>|z|)    
+#> treatment   0.0033009  0.0012081   2.7324  0.006287 ** 
+#> log_income -0.0120565  0.0005545 -21.7432 < 2.2e-16 ***
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
-
-Confidence Intervals:
-
-``` r
-cat("vcovJN", "\n")
-#> vcovJN
-lmtest::coefci(lm_fit, parm = c("treatment", "log_income"), vcov = vcovJN)
-#>                   2.5 %       97.5 %
-#> treatment  -0.000289118  0.004948919
-#> log_income -0.013038535 -0.010844641
-
-cat("vcovCR3", "\n")
-#> vcovCR3
-lmtest::coefci(lm_fit, parm = c("treatment", "log_income"), vcov = vcovCR3)
-#>                    2.5 %       97.5 %
-#> treatment  -0.0003023121  0.004962113
-#> log_income -0.0130440609 -0.010839115
-
-cat("vcovHC3", "\n")
-#> vcovHC3
-lmtest::coefci(lm_fit, parm = c("treatment", "log_income"), vcov = vcovHC)
-#>                    2.5 %       97.5 %
-#> treatment  -0.0003999807  0.005059782
-#> log_income -0.0125171348 -0.011366041
-```
-
-Regression table:
-
-``` r
-vc <- list(vcovHC = vcovHC, vcovCR3 = vcovCR3, vcovJN = vcovJN)
-mlist <- lapply(vc, coeftest, x = lm_fit)
-msummary(mlist)
-```
-
-|             |  vcovHC  | vcovCR3  |  vcovJN  |
-|:------------|:--------:|:--------:|:--------:|
-| (Intercept) |  1.087   |  1.087   |  1.087   |
-|             | (0.003)  | (0.006)  | (0.006)  |
-| treatment   |  0.002   |  0.002   |  0.002   |
-|             | (0.001)  | (0.001)  | (0.001)  |
-| log_income  |  -0.012  |  -0.012  |  -0.012  |
-|             | (0.000)  | (0.001)  | (0.001)  |
-| Num.Obs.    |  100000  |  100000  |  100000  |
-| AIC         | -18838.4 | -18838.4 | -18838.4 |
-| BIC         | -18800.3 | -18800.3 | -18800.3 |
-| Log.Lik.    | 9423.188 | 9423.188 | 9423.188 |

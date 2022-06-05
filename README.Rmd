@@ -11,9 +11,10 @@ knitr::opts_chunk$set(
 )
 ```
 
-# clusterjack
+# CRV3J
 
 <!-- badges: start -->
+[![R-CMD-check](https://github.com/s3alfisc/clusterjack/workflows/R-CMD-check/badge.svg)](https://github.com/s3alfisc/clusterjack/actions)
 <!-- badges: end -->
 
 `clusterjack` implements the CRV3 Jackknife algorithm proposed in [MacKinnon, Nielsen and Webb](https://scholar.google.de/citations?view_op=view_citation&hl=de&user=PdkdfhMAAAAJ&sortby=pubdate&citation_for_view=PdkdfhMAAAAJ:8VtEwCQfWZkC). 
@@ -24,18 +25,15 @@ knitr::opts_chunk$set(
 To install the package, run 
 
 ```{r, warning = FALSE, message = FALSE, eval = FALSE}
-devtools::install_github("s3alfisc/clusterjack")
+devtools::install_github("s3alfisc/CRV3J")
 ```
 
 ## Example
 
 ```{r, warning = FALSE, message = FALSE}
-library(clusterjack)
+library(CRV3J)
 library(fwildclusterboot)
-library(clubSandwich)
-library(lmtest)
-library(pracma)
-library(modelsummary)
+library(fixest)
 
 set.seed(98765)
 # few large clusters (around 10000 obs)
@@ -51,67 +49,29 @@ data <- fwildclusterboot:::create_data(
     numb_fe2 = 10,
     seed = 12
   )
-lm_fit <- lm(proposition_vote ~ treatment  + log_income , data = data)
 
-if(N == N_G1){
-  data$group_id1 <- 1:N
-}
+feols_fit <- feols(proposition_vote ~ treatment  + log_income |Q1_immigration + Q2_defense, cluster = ~group_id1 , data = data)
+
 ```
 
 Calculate Jackknife CVR3 Variance-Covariance Matrix 
 
 ```{r, warning = FALSE, message = FALSE}
-pracma::tic()
-vcovJN <- clusterjack::vcovJN(
-  model = lm_fit, 
-  clustid = data$group_id1
+vcov <- CRV3J::vcov_CR3J(
+  obj = feols_fit, 
+  cluster = data$group_id1
 )
-pracma::toc()
 ```
 
-Calculate 
+Results can now be collected via the `coeftest` package: 
 
 ```{r, warning = FALSE, message = FALSE}
-pracma::tic()
-vcovCR3 <- 
-clubSandwich::vcovCR(
-  lm_fit, 
-  cluster = data$group_id1, 
-  type = "CR3")
-pracma::toc()
-```
-```{r}
 library(sandwich)
+library(lmtest)
 
-vcovHC <- sandwich::vcovHC(
-  lm_fit, 
-  type = "HC3"
-)
+coeftest(feols_fit, vcov)
 ```
 
-
-Confidence Intervals: 
-
-```{r, warning = FALSE, message = FALSE}
-cat("vcovJN", "\n")
-lmtest::coefci(lm_fit, parm = c("treatment", "log_income"), vcov = vcovJN)
-
-cat("vcovCR3", "\n")
-lmtest::coefci(lm_fit, parm = c("treatment", "log_income"), vcov = vcovCR3)
-
-cat("vcovHC3", "\n")
-lmtest::coefci(lm_fit, parm = c("treatment", "log_income"), vcov = vcovHC)
-
-```
-
-
-Regression table: 
-
-```{r, warning = FALSE, message = FALSE}
-vc <- list(vcovHC = vcovHC, vcovCR3 = vcovCR3, vcovJN = vcovJN)
-mlist <- lapply(vc, coeftest, x = lm_fit)
-msummary(mlist)
-```
 
 
 

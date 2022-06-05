@@ -1,4 +1,4 @@
 library(testthat)
-library(clusterjack)
+library(CRV3J)
 
-test_check("clusterjack")
+test_check("CRV3J")

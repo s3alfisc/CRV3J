@@ -1,10 +1,9 @@
-Package: clusterjack
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Package: CRV3J
+Title: Compute CRV3 variance-covariance matrices via the cluster jackknife
+Version: 0.1
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+    person("Alexander", "Fischer", , "alexander-fischer1801@t-online.de", role = c("aut", "cre"))
+Description: Compute CRV3 variance-covariance matrices via the cluster jackknife for objets of type lm and fixest (from fixest) via the cluster jackknife as described in MacKinnon, Nielsen & Webb (2022).
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

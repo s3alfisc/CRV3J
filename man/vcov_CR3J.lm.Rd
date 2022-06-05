@@ -7,11 +7,11 @@
 \method{vcov_CR3J}{lm}(obj, cluster, ...)
 }
 \arguments{
+\item{obj}{An object of type lm}
+
 \item{cluster}{A clustering vector}
 
 \item{...}{other function arguments passed to 'vcov'}
-
-\item{object}{An object of type lm}
 }
 \description{
 Compute CR3 Jackknive variance covariance matrices of objects of type lm
