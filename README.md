@@ -1,13 +1,15 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# clusterjack
+# CRV3J
 
 <!-- badges: start -->
+
+[![R-CMD-check](https://github.com/s3alfisc/clusterjack/workflows/R-CMD-check/badge.svg)](https://github.com/s3alfisc/clusterjack/actions)
 <!-- badges: end -->
 
-`clusterjack` implements the CRV3 Jackknife algorithm proposed in
-[MacKinnon, Nielsen and
+`CRV3J` implements the CRV3 Jackknife algorithm proposed in [MacKinnon,
+Nielsen and
 Webb](https://scholar.google.de/citations?view_op=view_citation&hl=de&user=PdkdfhMAAAAJ&sortby=pubdate&citation_for_view=PdkdfhMAAAAJ:8VtEwCQfWZkC).
 
 ## Installation
@@ -15,7 +17,7 @@ Webb](https://scholar.google.de/citations?view_op=view_citation&hl=de&user=Pdkdf
 To install the package, run
 
 ``` r
-devtools::install_github("s3alfisc/clusterjack")
+devtools::install_github("s3alfisc/CRV3J")
 ```
 
 ## Example
