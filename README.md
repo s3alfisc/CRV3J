@@ -42,19 +42,30 @@ data <- fwildclusterboot:::create_data(
     seed = 12
   )
 
-feols_fit <- feols(proposition_vote ~ treatment  + log_income |Q1_immigration + Q2_defense, cluster = ~group_id1 , data = data)
-```
-
-Calculate Jackknife CVR3 Variance-Covariance Matrix
-
-``` r
-vcov <- CRV3J::vcov_CR3J(
-  obj = feols_fit, 
-  cluster = data$group_id1
+feols_fit <- feols(
+  proposition_vote ~ treatment  + log_income |Q1_immigration + Q2_defense, 
+  cluster = ~group_id1 , 
+  data = data
 )
 ```
 
-Results can now be collected via the `coeftest` package:
+You can estimate CVR3 Variance-Covariance Matrix via the Jackknive with
+the `vcov_CR3J` function:
+
+``` r
+system.time(
+  vcov <- CRV3J::vcov_CR3J(
+    obj = feols_fit, 
+    cluster = data$group_id1
+  )
+)
+#>    user  system elapsed 
+#>    0.25    0.00    0.21
+```
+
+Note that the algorithm proposed by NMW is very fast!
+
+You can now compute common test statistics via the `coeftest` package:
 
 ``` r
 library(sandwich)
