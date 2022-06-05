@@ -143,7 +143,8 @@ vcov_CR3J.fixest <- function(obj, cluster, ...) {
   tXX <- Reduce("+", XWg_XWg)
   tXy <- Reduce("+", yWg_XWg)
   # beta_g - beta
-  coef_list <- Map(function(a = tXX, b, c = tXy, d, beta = coef(obj)) MASS::ginv(a - b) %*% (c - d) - beta, b = XWg_XWg, d = yWg_XWg)
+  beta_coefs <- coef(obj)
+  coef_list <- Map(function(a = tXX, b, c = tXy, d, beta = beta_coefs) MASS::ginv(a - b) %*% (c - d) - beta, b = XWg_XWg, d = yWg_XWg)
   vcov <- Reduce("+",Map(function(x) tcrossprod(x), x = coef_list) )
   
   vcov <- vcov * (J-1)/J
