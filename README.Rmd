@@ -15,6 +15,7 @@ knitr::opts_chunk$set(
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/s3alfisc/clusterjack/workflows/R-CMD-check/badge.svg)](https://github.com/s3alfisc/clusterjack/actions)
+[![Codecov test coverage](https://codecov.io/gh/s3alfisc/clusterjack/branch/master/graph/badge.svg)](https://app.codecov.io/gh/s3alfisc/clusterjack?branch=master)
 <!-- badges: end -->
 
 `CRV3J` implements the CRV3 Jackknife algorithm proposed in [MacKinnon, Nielsen and Webb](https://scholar.google.de/citations?view_op=view_citation&hl=de&user=PdkdfhMAAAAJ&sortby=pubdate&citation_for_view=PdkdfhMAAAAJ:8VtEwCQfWZkC). 
